@@ -5,20 +5,26 @@ from collections import OrderedDict
 
 class ClosenessAggregation():
 
-    def __init__(self, user, query, limit, page=1, **options):
-        # self.user_obj = user
-        self.user = user
+    def __init__(
+            self, cmp_object, query, out_fields, limit, page=1, **cmp_fields):
+        self.cmp_object = cmp_object
         self.page = page
         self.limit = limit
         self.query = query
         self.pipeline = []
-        for option, value in options.iteritems():
-            setattr(self, option, value)
+        self.set_cmp_feilds(cmp_fields)
+        self.OUT_PUT_FIELDS = out_fields
 
-        # self.tags = tags
-        # self.user['details'] = {}
-        # if location:
-        #     self.user['location'] = location
+    def set_cmp_feilds(self, cmp_fields):
+        weight = 0.001
+        count = 0
+        for option, value in cmp_fields.iteritems():
+            setattr(self, option, value)
+            for field in value:
+                weight += field.get('weight', 1)
+                count += 1
+
+        self.unit_weight = 100 / weight
 
     def get_aggregation_pipeline(self):
         self.generate_pipeline()
@@ -32,43 +38,13 @@ class ClosenessAggregation():
         self.set_pipeline_limit_and_skip_stage()
 
     def set_pipeline_stage1_query(self):
-        # query = {}
-        # match_settings = self.user['match_settings']
-        # distance_in_meter = match_settings['distance'] * 1.60934 / 111.12
-        # query['$geoNear'] = {
-        #     'near': self.user['location'],
-        #     'maxDistance': distance_in_meter,
-        #     'includeLocs': "details.location",
-        #     'distanceField': "details.distance",
-        #     'distanceMultiplier': 111.12 / 1.60934,
-        #     'limit': 100000,
-        # }
         if self.query:
             self.pipeline.append(self.query)
-
-    # def set_pipeline_stage1_geo_query(self):
-    #     query = {}
-    #     match_settings = self.user['match_settings']
-    #     viewed_user_ids = self.user_obj.get_matched_or_unmatched_user_ids()
-    #     query['match'] = {
-    #         '_id': {'$nin': viewed_user_ids},
-    #         'match_settings.show_on_heatmap': True,
-    #         'age': {
-    #             '$exists': True,
-    #             '$gte': match_settings['age_range']['min_age'],
-    #             '$lte': match_settings['age_range']['max_age'],
-    #         },
-    #     }
-
-    #     query = self.set_gender(query)
-    #     query = self.set_tag(query)
-
-    #     self.pipeline[0]['$geoNear']['query'] = query['match']
 
     def set_pipeline_stage2_project(self):
         self.format_self_user_emb_docs()
         query = {'$project': {}}
-        for field in self.user:
+        for field in self.cmp_object:
             query['$project'][field] = 1
 
         for array_dict in self.ARRAY_DICT_CMP_FIELDS:
@@ -98,7 +74,7 @@ class ClosenessAggregation():
 
     def set_nested_field_weightages(self, query):
         for var in self.ARRAY_CMP_FIELDS + self.ARRAY_DICT_CMP_FIELDS:
-            self_value = self.user.get(var['field'])
+            self_value = self.cmp_object.get(var['field'])
             if self_value:
                 query['$group']['rank']['$sum']['$add'].append(
                     self.get_formula(var, self_value)
@@ -107,10 +83,12 @@ class ClosenessAggregation():
 
     def set_string_field_weightages(self, query):
         for var in self.STRING_CMP_FIELDS:
-            self_value = self.user.get(var['field'])
+            self_value = self.cmp_object.get(var['field'])
             if self_value:
                 # equation = {'$cond': [conition, true value, false value]}
-                equation = {'$cond': [{}, var['weight'], 0]}
+                equation = {
+                    '$cond': [{}, var.get('weight', 1) * self.unit_weight, 0]
+                }
 
                 # compare string
                 equation['$cond'][0]['$eq'] = [
@@ -123,11 +101,12 @@ class ClosenessAggregation():
 
     def set_int_field_weightages(self, query):
         for var in self.NUM_CMP_FIELDS:
-            self_value = self.user.get(var['field'])
+            self_value = self.cmp_object.get(var['field'])
             if self_value:
                 # equation = {'$cond': [conition, true value, false value]}
-                equation = {'$cond': [{}, var['weight'], 0]}
-
+                equation = {
+                    '$cond': [{}, var.get('weight', 1) * self.unit_weight, 0]
+                }
                 # check number is between given range
                 equation['$cond'][0]['$and'] = [{
                     '$gte': ['$' + var['field'], self_value + var['from']]
@@ -153,21 +132,6 @@ class ClosenessAggregation():
         query = {'$sort': sort_dict}
         self.pipeline.append(query)
 
-    def set_gender(self, query):
-        if self.user['match_settings']['show'] != SETTINGS['GENDERS'][2]:
-            query['match']['gender'] = {
-                '$exists': True,
-                '$eq': self.user['match_settings']['show'],
-            }
-
-        return query
-
-    def set_tag(self, query):
-        if self.tags:
-            query['match']['tags'] = {'$elemMatch': {'$in': self.tags}}
-
-        return query
-
     def set_pipeline_limit_and_skip_stage(self):
         self.pipeline.append(
             {'$skip': (self.page - 1) * self.limit},
@@ -181,9 +145,9 @@ class ClosenessAggregation():
             uniq_id = array_dict['unique']
             field = array_dict['field']
             ids = []
-            for doc in self.user[field]:
+            for doc in self.cmp_object[field]:
                 ids.append(doc[uniq_id])
-            self.user[field] = ids
+            self.cmp_object[field] = ids
 
     def get_formula(self, var, self_value):
         """
@@ -240,7 +204,7 @@ class ClosenessAggregation():
         Two_nAandBby_nA_Plus_nAandBby_nA_By_three_Mul_weight = {
             '$multiply': [
                 Two_nAandBby_nA_Plus_nAandBby_nA_By_three,
-                var['weight']
+                var.get('weight', 1) * self.unit_weight
             ],
         }
 

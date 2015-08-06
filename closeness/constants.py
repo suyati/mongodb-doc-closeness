@@ -1,17 +1,17 @@
-
+# sample data
 
 ARRAY_CMP_FIELDS = [
     {
-        'field': 'a',
-        'weight': WEIGHT * 3
+        'field': 'sports',
+        'weight': 3
     }
 ]
 
 ARRAY_DICT_CMP_FIELDS = [
     {
-        'field': 'following',
+        'field': 'friends',
         'unique': 'user_id',
-        'weight': WEIGHT * .5
+        'weight': .5
     }
 ]
 
@@ -19,15 +19,16 @@ ARRAY_DICT_CMP_FIELDS = [
 STRING_CMP_FIELDS = [
     {
         'field': 'relationship_status',
-        'weight': WEIGHT * .5
+        'weight': .5
     }
+]
 
 NUM_CMP_FIELDS = [
     {
-        'field': 'height',
+        'field': 'age',
         'from': -1,
         'to': 1,
-        'weight': WEIGHT * .3
+        'weight': .3
     }
 ]
 
