@@ -16,7 +16,7 @@ class ClosenessAggregation():
         self.OUT_PUT_FIELDS = out_fields
 
     def set_cmp_feilds(self, cmp_fields):
-        weight = 0.001
+        weight = 0
         count = 0
         for option, value in cmp_fields.iteritems():
             setattr(self, option, value)
