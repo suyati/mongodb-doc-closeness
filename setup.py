@@ -10,7 +10,7 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
 setup(
     name='closeness',
 
-    version='1.1.1',
+    version='1.2.0',
 
     description='Mongodb document similarity',
     long_description=long_description,
@@ -40,6 +40,6 @@ setup(
 
     keywords='mongodb setuptools development relationship query',
 
-    packages=['closeness', 'pymongo'],
+    packages=['closeness'],
 
 )

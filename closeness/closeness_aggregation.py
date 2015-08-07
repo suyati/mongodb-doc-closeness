@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
+from fuzzy_mode import FuzzyMode
+from simple_mode import SimpleMode
 
 
 class ClosenessAggregation():
+
+    (SIMPLE, FUZZY) = (1, 2)
 
     def __init__(
             self, cmp_object, query, out_fields, limit, page=1, **cmp_fields):
@@ -26,9 +30,17 @@ class ClosenessAggregation():
 
         self.unit_weight = 100 / weight
 
-    def get_aggregation_pipeline(self):
+    def get_aggregation_pipeline(self, mode=None):
+        self.set_mode(mode)
+
         self.generate_pipeline()
         return self.pipeline
+
+    def set_mode(self, mode):
+        if mode == self.SIMPLE:
+            self.mode = SimpleMode(self)
+        else:
+            self.mode = FuzzyMode(self)
 
     def generate_pipeline(self):
         self.set_pipeline_stage1_query()
@@ -61,62 +73,9 @@ class ClosenessAggregation():
         self.pipeline.append(query)
 
     def set_pipeline_stage3_group(self):
-        query = {'$group': {
-            '_id': '$_id',
-            'rank': {'$sum': {'$add': []}}
-        }}
-        query = self.set_nested_field_weightages(query)
-        query = self.set_string_field_weightages(query)
-        query = self.set_int_field_weightages(query)
-
+        query = self.mode.get_pipeline_stage3_group()
         query = self.set_output_fields(query)
         self.pipeline.append(query)
-
-    def set_nested_field_weightages(self, query):
-        for var in self.ARRAY_CMP_FIELDS + self.ARRAY_DICT_CMP_FIELDS:
-            self_value = self.cmp_object.get(var['field'])
-            if self_value:
-                query['$group']['rank']['$sum']['$add'].append(
-                    self.get_formula(var, self_value)
-                )
-        return query
-
-    def set_string_field_weightages(self, query):
-        for var in self.STRING_CMP_FIELDS:
-            self_value = self.cmp_object.get(var['field'])
-            if self_value:
-                # equation = {'$cond': [conition, true value, false value]}
-                equation = {
-                    '$cond': [{}, var.get('weight', 1) * self.unit_weight, 0]
-                }
-
-                # compare string
-                equation['$cond'][0]['$eq'] = [
-                    {'$strcasecmp': ["$" + var['field'], self_value]}, 0
-                ]
-
-                query['$group']['rank']['$sum']['$add'].append(equation)
-
-        return query
-
-    def set_int_field_weightages(self, query):
-        for var in self.NUM_CMP_FIELDS:
-            self_value = self.cmp_object.get(var['field'])
-            if self_value:
-                # equation = {'$cond': [conition, true value, false value]}
-                equation = {
-                    '$cond': [{}, var.get('weight', 1) * self.unit_weight, 0]
-                }
-                # check number is between given range
-                equation['$cond'][0]['$and'] = [{
-                    '$gte': ['$' + var['field'], self_value + var['from']]
-                }, {
-                    '$lte': ['$' + var['field'], self_value + var['to']]
-                }]
-
-                query['$group']['rank']['$sum']['$add'].append(equation)
-
-        return query
 
     def set_output_fields(self, query):
         for field in self.OUT_PUT_FIELDS:
@@ -148,64 +107,3 @@ class ClosenessAggregation():
             for doc in self.cmp_object[field]:
                 ids.append(doc[uniq_id])
             self.cmp_object[field] = ids
-
-    def get_formula(self, var, self_value):
-        """
-            weight calculation formula :
-
-            (( 2 * ( n(A ⋂ B) / n(A) ) + n(A ⋂ B) / n(B) ) / 3 ) * weight
-
-
-        """
-
-        # n(A)
-        nA = len(self_value)
-
-        if nA == 0:
-            return {}
-
-        # n(B)     adding 0.001 to avoid divsible by 0 error
-        nB = {'$add': [
-            {'$size': '$' + var['field']},
-            0.001
-        ]}
-
-        # n(A ⋂ B)
-        nAandB = {'$size': {
-            '$setIntersection': [
-                self_value,
-                '$' + var['field']
-            ],
-        }}
-
-        # ( 2 * ( n(A ⋂ B) / n(A) )
-
-        Two_nAandBby_nA = {
-            '$multiply': [{
-                '$divide': [nAandB, nA],
-            }, 2],
-        }
-
-        # n(A ⋂ B) / n(B)
-
-        nAandBby_nA = {
-            '$divide': [nAandB, nB]
-        }
-
-        # ( 2 * ( n(A U B) / n(A) ) + n(A ⋂ B) / n(B) ) / 3
-        Two_nAandBby_nA_Plus_nAandBby_nA_By_three = {
-            '$divide': [
-                {'$add': [Two_nAandBby_nA, nAandBby_nA]},
-                3
-            ],
-        }
-
-        # (( 2 * ( n(A ⋂ B) / n(A) ) + n(A ⋂ B) / n(B) ) / 3 ) * weight
-        Two_nAandBby_nA_Plus_nAandBby_nA_By_three_Mul_weight = {
-            '$multiply': [
-                Two_nAandBby_nA_Plus_nAandBby_nA_By_three,
-                var.get('weight', 1) * self.unit_weight
-            ],
-        }
-
-        return Two_nAandBby_nA_Plus_nAandBby_nA_By_three_Mul_weight

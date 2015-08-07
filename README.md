@@ -108,10 +108,41 @@ test = ClosenessAggregation(
     NUM_CMP_FIELDS=NUM_CMP_FIELDS,
     ARRAY_DICT_CMP_FIELDS=ARRAY_DICT_CMP_FIELDS,
 )
-aggregation_query = test.get_aggregation_pipeline()
+
+
+aggregation_query = closeness_obj.get_aggregation_pipeline(
+    mode=ClosenessAggregation.SIMPLE
+)
+
 result = user_collection.aggregate(aggregation_query)
+
 # {u'ok': 1.0, u'result': [
-#  {u'age': 25, u'_id': ObjectId('55c44846b67e2028fe51c3fb'), u'name': u'User 2', u'rank': 99.99095908598945}, 
-#  {u'age': 30, u'_id': ObjectId('55c44846b67e2028fe51c3fc'), u'name': u'User 3', u'rank': 45.1925335646266}
+#     {u'age': 25,
+#      u'_id': ObjectId('55c478e1b67e2055605a559e'),
+#      u'name': u'User 2',
+#      u'rank': 100.00000000000001},
+#     {u'age': 30,
+#      u'_id': ObjectId('55c478e1b67e2055605a559f'),
+#      u'name': u'User 3',
+#      u'rank': 27.131782945736436}
 # ]}
+
+aggregation_query = test.get_aggregation_pipeline(
+    mode=ClosenessAggregation.FUZZY
+)
+result = user_collection.aggregate(aggregation_query)
+
+# {u'ok': 1.0,
+#  u'result': [
+#      {u'age': 25,
+#       u'_id': ObjectId('55c44846b67e2028fe51c3fb'),
+#       u'name': u'User 2',
+#       u'rank': 99.99095908598945},
+#      {u'age': 30,
+#       u'_id': ObjectId('55c44846b67e2028fe51c3fc'),
+#       u'name': u'User 3',
+#       u'rank': 45.1925335646266}
+#  ]}
+
+
 ```
