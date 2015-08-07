@@ -11,12 +11,14 @@ How to use:
 Install package with pip
 
 ```
+
 pip install closeness
 ```
 
 See the example,
 
 ```python
+
 from closeness.closeness_aggregation import ClosenessAggregation
 from pymongo import MongoClient
 client = MongoClient()
