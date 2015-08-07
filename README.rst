@@ -16,15 +16,12 @@ pip install closeness
 
 See the example,
 
-```
+```python
 from closeness.closeness_aggregation import ClosenessAggregation
 from pymongo import MongoClient
 client = MongoClient()
 db = client.test_database
 user_collection = db.user_collection
-
-user_collection.drop()
-
 user1 = {
     'name': 'User 1',
     'age': 25,
@@ -55,7 +52,6 @@ user2 = {
         {"user_id": "friend3", 'name': "name3"},
     ]
 }
-
 user3 = {
     'name': 'User 3',
     'age': 30,
@@ -67,17 +63,14 @@ user3 = {
         {"user_id": "friend3", 'name': "name3"},
     ]
 }
-
 user_collection.insert([user1, user2, user3])
 query_stage = {'$match': {'name': {'$ne': user1['name']}}}
-
 ARRAY_CMP_FIELDS = [
     {
         'field': 'tags',
         'weight': 3
     }
 ]
-
 ARRAY_DICT_CMP_FIELDS = [
     {
         'field': 'friends',
@@ -85,14 +78,12 @@ ARRAY_DICT_CMP_FIELDS = [
         'weight': .5
     }
 ]
-
 STRING_CMP_FIELDS = [
     {
         'field': 'gender',
         'weight': .5
     }
 ]
-
 NUM_CMP_FIELDS = [
     {
         'field': 'age',
@@ -101,11 +92,9 @@ NUM_CMP_FIELDS = [
         'weight': .3
     }
 ]
-
 OUT_PUT_FIELDS = [
     'name', 'age'
 ]
-
 test = ClosenessAggregation(
     user1,
     query_stage,
@@ -116,14 +105,10 @@ test = ClosenessAggregation(
     NUM_CMP_FIELDS=NUM_CMP_FIELDS,
     ARRAY_DICT_CMP_FIELDS=ARRAY_DICT_CMP_FIELDS,
 )
-
 aggregation_query = test.get_aggregation_pipeline()
-
 result = user_collection.aggregate(aggregation_query)
-
 # {u'ok': 1.0, u'result': [
 {u'age': 25, u'_id': ObjectId('55c44846b67e2028fe51c3fb'), u'name': u'User 2', u'rank': 99.99095908598945}, 
 {u'age': 30, u'_id': ObjectId('55c44846b67e2028fe51c3fc'), u'name': u'User 3', u'rank': 45.1925335646266}
 ]}
-
 ```
