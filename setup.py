@@ -40,6 +40,6 @@ setup(
 
     keywords='mongodb setuptools development relationship query',
 
-    packages=['closeness'],
+    packages=['closeness', 'pymongo'],
 
 )
