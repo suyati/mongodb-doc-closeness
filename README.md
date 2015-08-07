@@ -111,7 +111,7 @@ test = ClosenessAggregation(
 aggregation_query = test.get_aggregation_pipeline()
 result = user_collection.aggregate(aggregation_query)
 # {u'ok': 1.0, u'result': [
-{u'age': 25, u'_id': ObjectId('55c44846b67e2028fe51c3fb'), u'name': u'User 2', u'rank': 99.99095908598945}, 
-{u'age': 30, u'_id': ObjectId('55c44846b67e2028fe51c3fc'), u'name': u'User 3', u'rank': 45.1925335646266}
-]}
+#  {u'age': 25, u'_id': ObjectId('55c44846b67e2028fe51c3fb'), u'name': u'User 2', u'rank': 99.99095908598945}, 
+#  {u'age': 30, u'_id': ObjectId('55c44846b67e2028fe51c3fc'), u'name': u'User 3', u'rank': 45.1925335646266}
+# ]}
 ```
