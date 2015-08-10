@@ -10,7 +10,7 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
 setup(
     name='closeness',
 
-    version='1.2.0',
+    version='1.3.0',
 
     description='Mongodb document similarity',
     long_description=long_description,
