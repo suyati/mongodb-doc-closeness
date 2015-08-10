@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 
 class SimpleMode():
 
@@ -12,11 +14,12 @@ class SimpleMode():
     def get_pipeline_stage3_group(self):
         query = {'$group': {
             '_id': '$_id',
-            'rank': {'$sum': {'$add': []}}
+            'rank': {'$sum': {'$add': []}},
+            'weights': {'$push': {}},
         }}
-        query = self.set_nested_field_weightages(query)
-        query = self.set_string_field_weightages(query)
-        query = self.set_int_field_weightages(query)
+        self.set_nested_field_weightages(query)
+        self.set_string_field_weightages(query)
+        self.set_int_field_weightages(query)
 
         return query
 
@@ -24,9 +27,12 @@ class SimpleMode():
         for var in self.ARRAY_CMP_FIELDS + self.ARRAY_DICT_CMP_FIELDS:
             self_value = self.cmp_object.get(var['field'])
             if self_value:
+                field_weight = self.get_formula(var, self_value)
                 query['$group']['rank']['$sum']['$add'].append(
-                    self.get_formula(var, self_value)
+                    field_weight
                 )
+                self.mark_weights(query, var['field'], field_weight)
+
         return query
 
     def set_string_field_weightages(self, query):
@@ -44,6 +50,7 @@ class SimpleMode():
                 ]
 
                 query['$group']['rank']['$sum']['$add'].append(equation)
+                self.mark_weights(query, var['field'], equation)
 
         return query
 
@@ -61,10 +68,11 @@ class SimpleMode():
                 ]
 
                 query['$group']['rank']['$sum']['$add'].append(equation)
+                self.mark_weights(query, var['field'], equation)
 
         return query
 
-    def get_formula(self, var, self_value):
+    def set_field_weight(self, var, self_value):
         """
             weight calculation formula :
 
@@ -93,6 +101,11 @@ class SimpleMode():
             '$divide': [nAandB, nA],
         }
 
+        return nAandBby_nA
+
+    def get_formula(self, var, self_value):
+        nAandBby_nA = self.set_field_weight(var, self_value)
+
         # n(A ⋂ B) / n(A)* weight
         nAandBby_nA_Mul_weight = {
             '$multiply': [
@@ -102,3 +115,12 @@ class SimpleMode():
         }
 
         return nAandBby_nA_Mul_weight
+
+    def mark_weights(self, query, field, field_weight):
+        query['$group']['weights']['$push'][field] = {
+            '$add': [
+                field_weight,
+                0
+            ]
+        }
+        return query

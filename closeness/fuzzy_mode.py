@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 
 class FuzzyMode():
 
@@ -14,11 +16,12 @@ class FuzzyMode():
     def get_pipeline_stage3_group(self):
         query = {'$group': {
             '_id': '$_id',
-            'rank': {'$sum': {'$add': []}}
+            'rank': {'$sum': {'$add': []}},
+            'weights': {'$push': {}},
         }}
-        query = self.set_nested_field_weightages(query)
-        query = self.set_string_field_weightages(query)
-        query = self.set_int_field_weightages(query)
+        self.set_nested_field_weightages(query)
+        self.set_string_field_weightages(query)
+        self.set_int_field_weightages(query)
 
         return query
 
@@ -26,9 +29,12 @@ class FuzzyMode():
         for var in self.ARRAY_CMP_FIELDS + self.ARRAY_DICT_CMP_FIELDS:
             self_value = self.cmp_object.get(var['field'])
             if self_value:
+                field_weight = self.get_formula(var, self_value)
                 query['$group']['rank']['$sum']['$add'].append(
-                    self.get_formula(var, self_value)
+                    field_weight
                 )
+                self.mark_weights(query, var['field'], field_weight)
+
         return query
 
     def set_string_field_weightages(self, query):
@@ -46,6 +52,7 @@ class FuzzyMode():
                 ]
 
                 query['$group']['rank']['$sum']['$add'].append(equation)
+                self.mark_weights(query, var['field'], equation)
 
         return query
 
@@ -65,10 +72,11 @@ class FuzzyMode():
                 }]
 
                 query['$group']['rank']['$sum']['$add'].append(equation)
+                self.mark_weights(query, var['field'], equation)
 
         return query
 
-    def get_formula(self, var, self_value):
+    def set_field_weight(self, var, self_value):
         """
             weight calculation formula :
 
@@ -119,6 +127,14 @@ class FuzzyMode():
             ],
         }
 
+        return Two_nAandBby_nA_Plus_nAandBby_nA_By_three
+
+    def get_formula(self, var, self_value):
+        Two_nAandBby_nA_Plus_nAandBby_nA_By_three = self.set_field_weight(
+            var,
+            self_value
+        )
+
         # (( 2 * ( n(A ⋂ B) / n(A) ) + n(A ⋂ B) / n(B) ) / 3 ) * weight
         Two_nAandBby_nA_Plus_nAandBby_nA_By_three_Mul_weight = {
             '$multiply': [
@@ -128,3 +144,12 @@ class FuzzyMode():
         }
 
         return Two_nAandBby_nA_Plus_nAandBby_nA_By_three_Mul_weight
+
+    def mark_weights(self, query, field, field_weight):
+        query['$group']['weights']['$push'][field] = {
+            '$add': [
+                field_weight,
+                0
+            ]
+        }
+        return query
