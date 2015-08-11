@@ -8,6 +8,12 @@ from simple_mode import SimpleMode
 class ClosenessAggregation():
 
     (SIMPLE, FUZZY) = (1, 2)
+    FIELDS = (
+        'ARRAY_CMP_FIELDS',
+        'ARRAY_DICT_CMP_FIELDS',
+        'STRING_CMP_FIELDS',
+        'NUM_CMP_FIELDS',
+    )
 
     def __init__(
             self, cmp_object, query, out_fields, limit, page=1, **cmp_fields):
@@ -21,12 +27,11 @@ class ClosenessAggregation():
 
     def set_cmp_feilds(self, cmp_fields):
         weight = 0
-        count = 0
-        for option, value in cmp_fields.iteritems():
-            setattr(self, option, value)
+        for field in self.FIELDS:
+            value = cmp_fields.get(field, [])
+            setattr(self, field, value)
             for field in value:
                 weight += field.get('weight', 1)
-                count += 1
 
         self.unit_weight = 100 / weight
 

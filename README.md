@@ -102,7 +102,7 @@ test = ClosenessAggregation(
     user1,                                  # document to compare
     query_stage,
     OUT_PUT_FIELDS,
-    10,                                     #limit
+    limit=10,                                     #limit
     ARRAY_CMP_FIELDS=ARRAY_CMP_FIELDS,
     STRING_CMP_FIELDS=STRING_CMP_FIELDS,
     NUM_CMP_FIELDS=NUM_CMP_FIELDS,
