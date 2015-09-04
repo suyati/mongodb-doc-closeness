@@ -1,6 +1,8 @@
 Mongodb relation finder 
 =======================
 
+This package now supporting closeness amoung python dicts
+
 This is project is using to find relationship between mongodb documents. You can evaluate the closeness with rank field from the result, value lies between 0-100. 
 
 This will be the initial version of the project
@@ -156,6 +158,94 @@ result = user_collection.aggregate(aggregation_query)
 #                             u'tags': 23.255813953488374}],
 #               u'name': u'User 3',
 #               u'rank': 27.131782945736436}]}
+
+
+# By using python dicts
+
+
+users = [user2, user3]
+
+closeness_dict_obj = ClosenessDict(
+    user1,
+    users,
+    ARRAY_CMP_FIELDS=ARRAY_CMP_FIELDS,
+    STRING_CMP_FIELDS=STRING_CMP_FIELDS,
+    NUM_CMP_FIELDS=NUM_CMP_FIELDS,
+    ARRAY_DICT_CMP_FIELDS=ARRAY_DICT_CMP_FIELDS,
+)
+
+result = closeness_dict_obj.execute(
+    mode=ClosenessDict.SIMPLE
+)
+
+self.assertEqual(
+    result[0]['closeness']['rank'],
+    100.00000000000001)
+self.assertEqual(
+    result[1]['closeness']['rank'],
+    27.131782945736436)
+
+# [{'name': 'User 2',
+#   'tags': ['tag1',
+#            'tag2',
+#            'tag3'],
+#   'gender': 'male',
+#   'age': 25,
+#   'closeness': {'weightages': {'gender': 11.627906976744187,
+#                                'age': 6.9767441860465125,
+#                                'friends': 11.627906976744187,
+#                                'tags': 69.76744186046513},
+#                 'rank': 100.00000000000001},
+#   'friends': ['friend1',
+#               'friend2',
+#               'friend3']},
+#  {'name': 'User 3',
+#   'tags': ['tag1'],
+#   'gender': 'female',
+#   'age': 30,
+#   'closeness': {'weightages': {'gender': 0.0,
+#                                'age': 0.0,
+#                                'friends': 3.8759689922480622,
+#                                'tags': 23.255813953488374},
+#                 'rank': 27.131782945736436},
+#     'friends': ['friend3']}]
+
+
+result = closeness_dict_obj.execute(
+    mode=ClosenessDict.FUZZY
+)
+
+self.assertEqual(
+    result[0]['closeness']['rank'],
+    100.00000000000001)
+self.assertEqual(
+    result[1]['closeness']['rank'],
+    45.21963824289406)
+
+# [{'name': 'User 2',
+#   'tags': ['tag1',
+#            'tag2',
+#            'tag3'],
+#   'gender': 'male',
+#   'age': 25,
+#   'closeness': {'weightages': {'gender': 11.627906976744187,
+#                                'age': 6.9767441860465125,
+#                                'friends': 11.627906976744187,
+#                                'tags': 69.76744186046513},
+#                 'rank': 100.00000000000001},
+#   'friends': ['friend1',
+#               'friend2',
+#               'friend3']},
+#  {'name': 'User 3',
+#   'tags': ['tag1'],
+#   'gender': 'female',
+#   'age': 30,
+#   'closeness': {'weightages': {'gender': 0.0,
+#                                'age': 0.0,
+#                                'friends': 6.459948320413436,
+#                                'tags': 38.75968992248062},
+#                 'rank': 45.21963824289406},
+#     'friends': ['friend3']}]
 
 
 ```

@@ -10,15 +10,16 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
 setup(
     name='closeness',
 
-    version='1.5.1',
+    version='2.0.0',
 
-    description='Mongodb document similarity',
+    description='Mongodb documentand python dict similarity',
     long_description=long_description,
 
-    url='https://github.com/mthahakp/mongodb-doc-closeness',
+    url='https://github.com/suyati/mongodb-doc-closeness',
 
     author='Thaha',
     author_email='tkannippoyil@suyati.com',
+    maintainer='Suyati Technologies',
 
     license='MIT',
 
