@@ -61,7 +61,7 @@ class ClosenessAggregation():
     def set_pipeline_stage2_project(self):
         self.format_self_user_emb_docs()
         query = {'$project': {}}
-        for field in self.OUT_PUT_FIELDS:
+        for field in self.cmp_object.__class__._fields:
             query['$project'][field] = 1
 
         for array_dict in self.ARRAY_DICT_CMP_FIELDS:
